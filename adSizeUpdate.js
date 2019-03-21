@@ -1,26 +1,50 @@
+#!/usr/bin/env node
+
 const fs = require('fs');
 const path = require('path');
 const jsdom = require("jsdom");
 const {
     JSDOM
 } = jsdom;
+const archiver = require('archiver');
+
+const colorize = (...args) => ({
+    green: `\x1b[32m${args.join(' ')}`
+});
 
 function fromDir(startPath, filter, callback) {
     let files = fs.readdirSync(startPath);
+
+    if (files === undefined || files.length == 0) {
+        console.log("Niks gevonden");
+    }
 
     for (let i = 0; i < files.length; i++) {
         let filename = path.join(startPath, files[i]);
         let stat = fs.lstatSync(filename);
 
         if (stat.isDirectory()) {
-            if (filename.indexOf('adSizeUpdate') == -1) {
                 fromDir(filename, filter, callback);
-            }
         } else if (filter.test(filename)) callback(filename);
     };
 };
 
-fromDir('../', /\.html$/, function (filename) {
+function zipDirectory(source, out) {
+    const archive = archiver('zip', { zlib: { level: 9 }});
+    const stream = fs.createWriteStream(out);
+
+    return new Promise((resolve, reject) => {
+        archive
+        .directory(source, false)
+        .on('error', err => reject(err))
+        .pipe(stream);
+
+        stream.on('close', () => resolve());
+        archive.finalize();
+    });
+}
+
+fromDir('./', /\.html$/, function (filename) {
     JSDOM.fromFile(filename).then(dom => {
         let title = dom.window.document.title;
         let adSizeMeta = dom.window.document.querySelector("meta[name='ad.size']").getAttribute('content');
@@ -34,12 +58,17 @@ fromDir('../', /\.html$/, function (filename) {
             if (err) {
                 return console.log(err);
             }
-            var result = data.replace(`<meta name="ad.size" content="${adSizeMeta}">`, updateadSizeMeta);
+            let result = data.replace(`<meta name="ad.size" content="${adSizeMeta}">`, updateadSizeMeta);
 
             fs.writeFile(filename, result, 'utf8', function (err) {
-                console.log(`Succes: ${adSize[0]}x${adSize[1]}`);
+                let getFolder = filename.substring(0, filename.lastIndexOf("/"));
+
+                zipDirectory(getFolder, `${title}.zip`);
+
+                console.log(colorize(`Succes: ${title}`).green);
                 if (err) return console.log(err);
             });
         });
     });
 });
+
