@@ -1,0 +1,18 @@
+### Installing
+
+```
+git clone
+```
+
+```
+npm install
+```
+
+```
+npm link
+```
+
+```
+ad-export (delay here)
+For example: ad-export 10
+```
