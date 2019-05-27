@@ -5,7 +5,7 @@
   "main": "cli.js",
   "dependencies": {
     "archiver": "^3.0.0",
-    "jquery": "^3.3.1",
+    "jquery": "^3.4.1",
     "jsdom": "^13.2.0",
     "pageres": "^5.1.0"
   },

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+require('events').EventEmitter.defaultMaxListeners = 150;
 
 const fs = require('fs');
 const path = require('path');
@@ -94,17 +95,32 @@ fromDir('./', /\.html$/, function (filename) {
 
             fs.writeFile(filename, result, 'utf8', function (err) {
                 let getFolder = filename.substring(0, filename.lastIndexOf("/"));
+                
+                var regex = /([A-Z])\w+/g;
+                var prefixFolder = filename.match(regex);
 
-                zipDirectory(getFolder, `${title}.zip`);
+                if (prefixFolder) {
+                    zipDirectory(getFolder, `${prefixFolder[0]}/${title}.zip`);
 
-                (async () => {
-                    await new Pageres({delay: delayTime, filename: title, format: 'jpg'})
-                        .src(filename, [`${adSize[0]}x${adSize[1]}`])
-                        .dest('./')
-                        .run();
-                })();
+                    (async () => {
+                        await new Pageres({delay: delayTime, filename: title, format: 'jpg'})
+                            .src(filename, [`${adSize[0]}x${adSize[1]}`])
+                            .dest(`./${prefixFolder}`)
+                            .run();
+                    })();
+                } else {
+                    zipDirectory(getFolder, `${title}.zip`);
 
+                    (async () => {
+                        await new Pageres({delay: delayTime, filename: title, format: 'jpg'})
+                            .src(filename, [`${adSize[0]}x${adSize[1]}`])
+                            .dest('./')
+                            .run();
+                    })();
+                }
+    
                 console.log(colorize(`Succes: ${title}`).green);
+
                 if (err) return console.log(err);
             });
         });
